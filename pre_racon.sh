@@ -6,7 +6,29 @@
 #########################################################################
 
 source ./*.cfg
+outdir=`pwd`
 bin_path=$(cd `dirname $0`; pwd)
-nohup sh $bin_path/run.sh & 
+soft_path=$bin_path/soft
+export PATH=$bin_path:$PATH
+export PATH=$bin_path/soft/minimap2:$PATH
 
- 
+mkdir ./0fasta
+cd ./0fasta
+mkdir fastas
+for bam in `ls $bam_dir/*.bam`;do
+	echo "bam2fasta.sh $bam $outdir/0fasta/fastas $a_p $ref" >> pre_work.sh
+done
+
+python $bin_path/qsub-sge.pl -l vf=$a_vf,p=$a_p -q $q -P $P ./pre_work.sh 
+
+echo "cat $outdir/0fasta/fastas/*.fasta > $outdir/0fasta/all.fasta" > cat.sh 
+python $bin_path/sgearray.py -l vf=1g,p=1 -q $q -P $P ./cat.sh
+
+
+
+
+
+
+
+
+
