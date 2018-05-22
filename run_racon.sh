@@ -7,6 +7,6 @@
 
 source ./*.cfg
 bin_path=$(cd `dirname $0`; pwd)
-nohup sh $bin_path/run.sh & 
+nohup sh $bin_path/recon_main.sh & 
 
  

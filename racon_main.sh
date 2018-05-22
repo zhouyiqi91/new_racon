@@ -1,26 +1,59 @@
 #!/bin/bash
-#########################################################################
-# File Name: run_racon.sh
-# Author: libenping
-# mail: libenping@novogene.com
-# Created Time: Wed 09 May 2018 10:44:38 AM CST
-#########################################################################
 
 source ./*.cfg
 outdir=`pwd`
 bin_path=$(cd `dirname $0`; pwd)
 soft_path=$bin_path/soft
 export PATH=$bin_path:$PATH
-export PATH=$bin_path/soft/minimap2:$PATH
-
-mkdir mapping
-mkdir mapping/shell
-cd ./mapping/shell
-for fasta in `ls $fasta_dir/*.fasta`;do
+export PATH=$soft_path/minimap2:$PATH
+export PATH=$soft_path//racon/racon/build/vendor/rampler/bin/:$PATH
+fasta_dir=0fasta
+prefix=$prefix
+#1map
+mkdir 1mapping
+cd ./1mapping
+mkdir pafs
+for fasta in `ls $fasta_dir/fastas/*.fasta`;do
 	file=$(basename fasta .fasta)
-	echo "minimap2 --secondary=no -t $a_p -x map-pb $ref $fasta >$outdir/mapping/${file}.paf" >> mapping.sh
+	echo "minimap2 --secondary=no -t $a_p -x map-pb $ref $fasta >$outdir/mapping/pafs/${file}.paf" >> ${prefix}_racon_map.txt
 done
-perl $bin_path/qsub-sge.pl --resource vf=$a_vf,p=$a_p --verbose --queue $q --project $P ./mapping.sh
+python $bin_path/sgearray.py -l vf=$a_vf,p=$a_p -q $q -P $P ${prefix}_racon_map.txt
+cat $outdir/mapping/pafs/*.paf > ./all.paf
+
+#2split_ref
 cd $outdir
+split_size=$((200*1000000))
+mkdir 2split_ref
+cd 2split_ref
+echo "rampler split $ref $split_size" > ${prefix}_split.txt
+python $bin_path/sgearray.py -l vf=3g,p=1 -q $q -P $P ${prefix}_split.txt
+
+#3extract
+cd $outdir
+mkdir 3extract
+cd 3extract
+for sfa in `ls ../2split_ref/*.fasta`;do
+	sfadir=`basename $sfa .fasta`
+	echo "mkdir $sfadir && cd $sfadir && ln -s $outdir/2split_ref/$sfa $sfa" >> ${prefix}_extract.txt
+	echo "sh $bin_path/ctgname.sh ./$sfa" >> ${prefix}_extract.txt
+	echo "python $bin_path/readsname.py $outdir/mapping/all.paf $sfadir" >>${prefix}_extract.txt
+	echo "sort -u ${sfadir}.mapped.reads > ${sfadir}.readlist" >>${prefix}_extract.txt
+	echo "python $bin_path/extract_reads.py $outdir/0fasta/all.fasta ${sfadir}.readlist" >>${prefix}_extract.txt
+done
+python $bin_path/sgearray.py -l vf=3g,p=1 -q $q -P $P -c 5 ${prefix}_extract.txt
+
+#4main
+cd $outdir
+mkdir 4main
+cd 4main
+for sfa in `ls ../2split_ref/*.fasta`;do
+	sfadir=`basename $sfa .fasta`
+	mapfasta=${sfadir}_mappedread.fasta
+	echo "mkdir $sfadir && cd $sfadir && racon -t $r_p $outdir/3extract/$sfadir/$mapfasta $outdir/mapping/all.paf $outdir/2split_ref/$sfa > ./${sfadir}_c.fasta" >> ${prefix}_main.txt
+done
+python $bin_path/sgearray.py -l vf=$r_vf,p=$r_p -q $q -P $P ${prefix}_main.txt
+cat $outdir/4main/*/*_c.fasta > $outdir/${prefix}_out.fasta
+echo "all done"
+
 
 
