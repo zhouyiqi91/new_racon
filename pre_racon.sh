@@ -23,7 +23,7 @@ python $bin_path/sgearray.py -l vf=1g,p=1 -q $q -P $P ./pre_work.sh
 
 echo "cat $outdir/0fasta/fastas/*.fasta > $outdir/0fasta/all.fasta" > cat.sh 
 python $bin_path/sgearray.py -l vf=1g,p=1 -q $q -P $P ./cat.sh
-
+echo "done" > pre_done.txt
 
 
 

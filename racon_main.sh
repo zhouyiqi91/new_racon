@@ -8,10 +8,11 @@ export PATH=$bin_path:$PATH
 export PATH=$soft_path/minimap2:$PATH
 export PATH=$soft_path/racon/racon/build/vendor/rampler/bin/:$PATH
 export PATH=$soft_path/racon/racon/build/bin/:$PATH
-fasta_dir=0fasta
+if [ $fasta_dir"x" == "x" ];then
+	fasta_dir=0fasta
+fi
 prefix=$prefix
 
-:<<'zhushi'
 #1map
 mkdir 1mapping
 cd ./1mapping
@@ -33,7 +34,7 @@ echo "?export PATH=$soft_path/racon/racon/build/vendor/rampler/bin/:\$PATH" >${p
 echo "rampler split $ref $split_size" >> ${prefix}_split.txt
 python $bin_path/sgearray.py -l vf=3g,p=1 -q $q -P $P ${prefix}_split.txt
 
-zhushi
+
 #3extract
 cd $outdir
 mkdir 3extract
@@ -45,7 +46,7 @@ for sfa in `ls $outdir/2split_ref/|grep "fasta$"`;do
 	echo "sh $bin_path/ctgname.sh ./$sfa" >> ${prefix}_extract.txt
 	echo "python $bin_path/readsname.py $outdir/1mapping/all.paf $sfadir" >>${prefix}_extract.txt
 	echo "sort -u ${sfadir}.mapped.reads > ${sfadir}.readlist" >>${prefix}_extract.txt
-	echo "python $bin_path/extract_reads.py $outdir/0fasta/all.fasta ${sfadir}.readlist" >>${prefix}_extract.txt
+	echo "python $bin_path/extract_reads.py $outdir/fasta_dir/all.fasta ${sfadir}.readlist" >>${prefix}_extract.txt
 done
 python $bin_path/sgearray.py -l vf=3g,p=1 -q $q -P $P -c 5 ${prefix}_extract.txt
 
