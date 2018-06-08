@@ -8,7 +8,7 @@
 source ./*.cfg
 bin_path=$(cd `dirname $0`; pwd)
 #check pre
-if [ $fasta_dir"x" == "x" ];then
+if [ ! -d $fasta_dir ];then
 	nohup sh $bin_path/pre_racon.sh &
 	while true;do
 		if [ -f "0fasta/pre_done.txt" ];then
